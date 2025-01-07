@@ -90,8 +90,8 @@ param
 
 #Variables/constants used to fetch files from a github branch
 $HydVM_CustomScriptExtensionName = "HydrationCustomScriptExtension"
-$BaseUriApi                      = "https://api.github.com/repos/Aeshnajain/HydrationComponents/git/trees/"+$GithubBranch+"?recursive=1"
-$PrefixFileUri                   = "https://github.com/Aeshnajain/HydrationComponents/raw/$GithubBranch/"
+$BaseUriApi                      = "https://api.github.com/repos/svishnusivasai/HydrationComponents/git/trees/"+$GithubBranch+"?recursive=1"
+$PrefixFileUri                   = "https://github.com/svishnusivasai/HydrationComponents/raw/$GithubBranch/"
 $script:FileUris                 =  @();
 
 #Variable used for the creation of RecoveryInfoFile
