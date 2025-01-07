@@ -1,9 +1,9 @@
 {
-    "ResourceGroupName" : "shamish-rg-ccy",
-    "Location" : "centraluseuap",
-    "SubscriptionId" : "6d875e77-e412-4d7d-9af4-8895278b4443",
-    "OSType" : "Windows",
-    "OSDiskName" : "HydOsDisk51489",
+    "ResourceGroupName" : "ssanagapalli-hydration-new-rg",
+    "Location" : "eastus2euap",
+    "SubscriptionId" : "8eb93418-422d-4fad-90a0-2fe0894f692c",
+    "OSType" : "Linux",
+    "OSDiskName" : "vishnu-ubuntu22-bios-nolvm-OSdisk-copy-hyd-testing",
     "AttachDataDisks" : false,
     "NoOfDataDisks" : 0,
     "DataDisksName" : [
@@ -14,7 +14,7 @@
     "AddCustomConfigSettings" : true,
     "EnableDHCP" : true,
     "EnableGA" : true,
-    "TargetVM_NICName" : "TargetNIC007",
-    "TargetVM_VirtualMachineName" : "TargetVM007",
+    "TargetVM_NICName" : "HydrationTestNIC007",
+    "TargetVM_VirtualMachineName" : "HydrationTestVM007",
     "TargetVM_VirtualMachineSize" : "Standard_B1ms"
 }
