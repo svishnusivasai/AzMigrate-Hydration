@@ -14,6 +14,7 @@ if (Test-Path $inputFilePath) {
     exit 1
 }
 
+$performHydrationPath = Join-Path -Path $scriptDir -ChildPath "PerformHydration.ps1"
 #Connect-AzAccount -Tenant 70a036f6-8e4d-4615-bad6-149c02e7720d
 #Select-AzSubscription -SubscriptionId $SubscriptionId
 
@@ -38,14 +39,14 @@ if($Inputs.AddCustomConfigSettings)
     }
     if(!$Inputs.AttachDataDisk)
     {
-        .\PerformHydration.ps1 -ResourceGroupName $Inputs.ResourceGroupName -Location  $Inputs.Location -SubscriptionId $Inputs.SubscriptionId `
+        & $performHydrationPath -ResourceGroupName $Inputs.ResourceGroupName -Location  $Inputs.Location -SubscriptionId $Inputs.SubscriptionId `
         -OSType $OSType ` -OSDiskName $Inputs.OSDiskName -TargetVM_NICName $Inputs.TargetVM_NICName `
         -TargetVM_VirtualMachineName $Inputs.TargetVM_VirtualMachineName -TargetVM_VirtualMachineSize $Inputs.TargetVM_VirtualMachineSize `
         -AddCustomConfigSettings -EnableDHCP $EnableDHCP -EnableGA $EnableGA -GithubBranch $Inputs.GithubBranch
     }
     else 
     {
-        .\PerformHydration.ps1 -ResourceGroupName $Inputs.ResourceGroupName -Location  $Inputs.Location -SubscriptionId $Inputs.SubscriptionId `
+        & $performHydrationPath -ResourceGroupName $Inputs.ResourceGroupName -Location  $Inputs.Location -SubscriptionId $Inputs.SubscriptionId `
         -OSType $OSType ` -OSDiskName $Inputs.OSDiskName -TargetVM_NICName $Inputs.TargetVM_NICName `
         -TargetVM_VirtualMachineName $Inputs.TargetVM_VirtualMachineName -TargetVM_VirtualMachineSize $Inputs.TargetVM_VirtualMachineSize `
         -AddCustomConfigSettings -EnableDHCP $EnableDHCP -EnableGA $EnableGA -AttachDataDisks -NoOfDataDisks $Inputs.NoOfDataDisks `
@@ -56,14 +57,14 @@ else
 {
     if(!$Inputs.AttachDataDisk)
     {
-        .\PerformHydration.ps1 -ResourceGroupName $Inputs.ResourceGroupName -Location  $Inputs.Location -SubscriptionId $Inputs.SubscriptionId `
+        & $performHydrationPath -ResourceGroupName $Inputs.ResourceGroupName -Location  $Inputs.Location -SubscriptionId $Inputs.SubscriptionId `
         -OSType $OSType ` -OSDiskName $Inputs.OSDiskName -TargetVM_NICName $Inputs.TargetVM_NICName `
         -TargetVM_VirtualMachineName $Inputs.TargetVM_VirtualMachineName -TargetVM_VirtualMachineSize $Inputs.TargetVM_VirtualMachineSize `
         -GithubBranch $Inputs.GithubBranch
     }
     else 
     {
-        .\PerformHydration.ps1 -ResourceGroupName $Inputs.ResourceGroupName -Location  $Inputs.Location -SubscriptionId $Inputs.SubscriptionId `
+        & $performHydrationPath -ResourceGroupName $Inputs.ResourceGroupName -Location  $Inputs.Location -SubscriptionId $Inputs.SubscriptionId `
         -OSType $OSType ` -OSDiskName $Inputs.OSDiskName -TargetVM_NICName $Inputs.TargetVM_NICName `
         -TargetVM_VirtualMachineName $Inputs.TargetVM_VirtualMachineName -TargetVM_VirtualMachineSize $Inputs.TargetVM_VirtualMachineSize `
         -AttachDataDisks -NoOfDataDisks $Inputs.NoOfDataDisks -DataDisksName $Inputs.DataDisksName -GithubBranch $Inputs.GithubBranch
