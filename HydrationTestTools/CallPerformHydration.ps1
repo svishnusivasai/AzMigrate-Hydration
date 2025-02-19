@@ -1,7 +1,7 @@
 $Inputs = cat .\Input.json | convertfrom-json
 
-Connect-AzAccount -Tenant 70a036f6-8e4d-4615-bad6-149c02e7720d
-Select-AzSubscription -SubscriptionId $SubscriptionId
+#Connect-AzAccount -Tenant 70a036f6-8e4d-4615-bad6-149c02e7720d
+#Select-AzSubscription -SubscriptionId $SubscriptionId
 
 $OSType = 1
 if(($Inputs.OSType -eq "Windows") -or ($Inputs.OSType -eq "windows"))
