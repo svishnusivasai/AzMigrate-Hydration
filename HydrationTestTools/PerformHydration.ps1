@@ -83,15 +83,15 @@ param
 
 #Variables/Constants used in Creation of Hydration Virtual Machine- Linux
 [string]$HydVM_PublisherNameLinux      = "Canonical"
-[string]$HydVM_OfferLinux              = "UbuntuServer"
-[string]$HydVM_SkusLinux               = "16.04-LTS"
+[string]$HydVM_OfferLinux              = "ubuntu-24_04-lts"
+[string]$HydVM_SkusLinux               = "server"
 [string]$HydVM_VersionLinux            = "latest"
 [string]$HydVM_StorageAccountTypeLinux = "Standard_LRS"
 
 #Variables/constants used to fetch files from a github branch
 $HydVM_CustomScriptExtensionName = "HydrationCustomScriptExtension"
-$BaseUriApi                      = "https://api.github.com/repos/Aeshnajain/HydrationComponents/git/trees/"+$GithubBranch+"?recursive=1"
-$PrefixFileUri                   = "https://github.com/Aeshnajain/HydrationComponents/raw/$GithubBranch/"
+$BaseUriApi                      = "https://api.github.com/repos/svishnusivasai/HydrationComponents/git/trees/"+$GithubBranch+"?recursive=1"
+$PrefixFileUri                   = "https://github.com/svishnusivasai/HydrationComponents/raw/$GithubBranch/"
 $script:FileUris                 =  @();
 
 #Variable used for the creation of RecoveryInfoFile
@@ -328,7 +328,7 @@ function HydVM_CreateVirtualMachineLinux
     $NoOfSourceDisks = $NoOfDataDisks + 1 # 1 for source OS Disk
     $VMSize = Get-AzVMSize -Location $Location | Where {($_.NumberOfCores -gt '2') -and ($_.MemoryInMB -gt '2048') -and `
     ($_.MaxDataDiskCount -gt $NoOfSourceDisks) -and ($_.ResourceDiskSizeInMB -ne 0)}
-    $VirtualMachine = New-AzVMConfig -VMName $HydVM_Name -VMSize $VMSize[0].Name
+    $VirtualMachine = New-AzVMConfig -VMName $HydVM_Name -VMSize $TargetVM_VirtualMachineSize
 
     #StorageProfile
     Set-AzVMOSDisk -Name $HydVM_OSDiskName -VM $VirtualMachine -CreateOption FromImage `
@@ -646,8 +646,8 @@ function HydVM_AttachCustomScriptExtensionLinux
 
     if(-not $AddCustomConfigSettings)
     {
-        $Settings = @{"fileUris" = $script:FileUris; "commandToExecute" = "bash StartupScript.sh migration 70b5c7c0-ad71-4cc6-afbe-1bab5226da25 EnableLinuxGAInstallation:true $script:RecoveryInfoFileContent"};
-        Set-AzVMExtension -ResourceGroupName $ResourceGroupName -Location $Location -VMName $HydVM_Name -Name $HydVM_CustomScriptExtensionName `
+		$Settings = @{"fileUris" = $script:FileUris; "commandToExecute" = "bash StartupScript.sh migrationtest 70b5c7c0-ad71-4cc6-afbe-1bab5226da25 EnableLinuxGAInstallation:true $script:RecoveryInfoFileContent"};        
+		Set-AzVMExtension -ResourceGroupName $ResourceGroupName -Location $Location -VMName $HydVM_Name -Name $HydVM_CustomScriptExtensionName `
         -Type "CustomScript" -Settings $Settings -TypeHandlerVersion "2.1" -Publisher "Microsoft.Azure.Extensions"
        
         if($?)
@@ -708,7 +708,7 @@ function HydVM_AttachCustomScriptExtensionLinux
             $CustomConfigSettings+="EnableGA:false"
         } 
     
-        $Settings = @{"fileUris" = $script:FileUris; "commandToExecute" = "bash StartupScript.sh migration 70b5c7c0-ad71-4cc6-afbe-1bab5226da25 EnableLinuxGAInstallation:true $script:RecoveryInfoFileContent $CustomConfigSettings"};
+		$Settings = @{"fileUris" = $script:FileUris; "commandToExecute" = "bash StartupScript.sh migrationtest 70b5c7c0-ad71-4cc6-afbe-1bab5226da25 EnableLinuxGAInstallation:true $script:RecoveryInfoFileContent $CustomConfigSettings"};
         Set-AzVMExtension -ResourceGroupName $ResourceGroupName -Location $Location -VMName $HydVM_Name -Name $HydVM_CustomScriptExtensionName `
         -Type "CustomScript" -Settings $Settings -TypeHandlerVersion "2.1" -Publisher "Microsoft.Azure.Extensions"
         
