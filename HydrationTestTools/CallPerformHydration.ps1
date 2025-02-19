@@ -1,4 +1,18 @@
-$Inputs = cat .\Input.json | convertfrom-json
+# Get the directory of the current script
+$scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
+
+# Define the path to the Input.json file
+$inputFilePath = Join-Path -Path $scriptDir -ChildPath "Input.json"
+
+# Check if the Input.json file exists
+if (Test-Path $inputFilePath) {
+    # Read the content of the Input.json file and convert it from JSON
+    $Inputs = Get-Content $inputFilePath | ConvertFrom-Json
+    Write-Host "Input.json file loaded successfully."
+} else {
+    Write-Error "Input.json not found at $inputFilePath"
+    exit 1
+}
 
 #Connect-AzAccount -Tenant 70a036f6-8e4d-4615-bad6-149c02e7720d
 #Select-AzSubscription -SubscriptionId $SubscriptionId
