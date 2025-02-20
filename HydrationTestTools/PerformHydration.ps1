@@ -450,7 +450,7 @@ function HydVM_FetchHydComponentsFromGithub
         Index 0 : AzureRecoveryTools.zip
         Index 1 : StartupScript.ps1 (Windows)
         Index 2 : StartupScript.sh (Linux)#>
-        $CheckMandatoryFiles = @($false,$false,$false)
+        $CheckMandatoryFiles = @($false,$false,$false,$false)
         for($i=0;$i -lt $FileNames.Length;$i++)
         {
             if($FileNames[$i] -eq "AzureRecoveryTools.zip")
@@ -465,6 +465,10 @@ function HydVM_FetchHydComponentsFromGithub
             {
                 $CheckMandatoryFiles[2]=$true
             }
+            if($FileNames[$i] -eq "azurerecovery-70b5c7c0-ad71-4cc6-afbe-1bab5226da25.conf")
+            {
+                $CheckMandatoryFiles[3]=$true
+            }			
         }
 
         $AllMandatoryFilesPresent_Windows = $true
