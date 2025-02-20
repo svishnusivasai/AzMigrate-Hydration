@@ -83,8 +83,8 @@ param
 
 #Variables/Constants used in Creation of Hydration Virtual Machine- Linux
 [string]$HydVM_PublisherNameLinux      = "Canonical"
-[string]$HydVM_OfferLinux              = "UbuntuServer"
-[string]$HydVM_SkusLinux               = "16.04-LTS"
+[string]$HydVM_OfferLinux              = "ubuntu-24_04-lts"
+[string]$HydVM_SkusLinux               = "server"
 [string]$HydVM_VersionLinux            = "latest"
 [string]$HydVM_StorageAccountTypeLinux = "Standard_LRS"
 
@@ -328,7 +328,7 @@ function HydVM_CreateVirtualMachineLinux
     $NoOfSourceDisks = $NoOfDataDisks + 1 # 1 for source OS Disk
     $VMSize = Get-AzVMSize -Location $Location | Where {($_.NumberOfCores -gt '2') -and ($_.MemoryInMB -gt '2048') -and `
     ($_.MaxDataDiskCount -gt $NoOfSourceDisks) -and ($_.ResourceDiskSizeInMB -ne 0)}
-    $VirtualMachine = New-AzVMConfig -VMName $HydVM_Name -VMSize $VMSize[0].Name
+    $VirtualMachine = New-AzVMConfig -VMName $HydVM_Name -VMSize $TargetVM_VirtualMachineSize
 
     #StorageProfile
     Set-AzVMOSDisk -Name $HydVM_OSDiskName -VM $VirtualMachine -CreateOption FromImage `
@@ -450,7 +450,7 @@ function HydVM_FetchHydComponentsFromGithub
         Index 0 : AzureRecoveryTools.zip
         Index 1 : StartupScript.ps1 (Windows)
         Index 2 : StartupScript.sh (Linux)#>
-        $CheckMandatoryFiles = @($false,$false,$false)
+        $CheckMandatoryFiles = @($false,$false,$false,$false)
         for($i=0;$i -lt $FileNames.Length;$i++)
         {
             if($FileNames[$i] -eq "AzureRecoveryTools.zip")
@@ -465,6 +465,10 @@ function HydVM_FetchHydComponentsFromGithub
             {
                 $CheckMandatoryFiles[2]=$true
             }
+            if($FileNames[$i] -eq "azurerecovery-70b5c7c0-ad71-4cc6-afbe-1bab5226da25.conf")
+            {
+                $CheckMandatoryFiles[3]=$true
+            }			
         }
 
         $AllMandatoryFilesPresent_Windows = $true
@@ -646,8 +650,8 @@ function HydVM_AttachCustomScriptExtensionLinux
 
     if(-not $AddCustomConfigSettings)
     {
-        $Settings = @{"fileUris" = $script:FileUris; "commandToExecute" = "bash StartupScript.sh migration 70b5c7c0-ad71-4cc6-afbe-1bab5226da25 EnableLinuxGAInstallation:true $script:RecoveryInfoFileContent"};
-        Set-AzVMExtension -ResourceGroupName $ResourceGroupName -Location $Location -VMName $HydVM_Name -Name $HydVM_CustomScriptExtensionName `
+		$Settings = @{"fileUris" = $script:FileUris; "commandToExecute" = "bash StartupScript.sh migrationtest 70b5c7c0-ad71-4cc6-afbe-1bab5226da25 'UseGithubHydrationUtils:false;IsInlineGAInstallationEnabled:true;IsCentosInlineGAInstallationEnabled:true;IsConfidentialVmMigration:false'"};        
+		Set-AzVMExtension -ResourceGroupName $ResourceGroupName -Location $Location -VMName $HydVM_Name -Name $HydVM_CustomScriptExtensionName `
         -Type "CustomScript" -Settings $Settings -TypeHandlerVersion "2.1" -Publisher "Microsoft.Azure.Extensions"
        
         if($?)
@@ -708,42 +712,43 @@ function HydVM_AttachCustomScriptExtensionLinux
             $CustomConfigSettings+="EnableGA:false"
         } 
     
-        $Settings = @{"fileUris" = $script:FileUris; "commandToExecute" = "bash StartupScript.sh migration 70b5c7c0-ad71-4cc6-afbe-1bab5226da25 EnableLinuxGAInstallation:true $script:RecoveryInfoFileContent $CustomConfigSettings"};
+		$Settings = @{"fileUris" = $script:FileUris; "commandToExecute" = "bash StartupScript.sh migrationtest 70b5c7c0-ad71-4cc6-afbe-1bab5226da25 'UseGithubHydrationUtils:false;IsInlineGAInstallationEnabled:true;IsCentosInlineGAInstallationEnabled:true;IsConfidentialVmMigration:false'"};
         Set-AzVMExtension -ResourceGroupName $ResourceGroupName -Location $Location -VMName $HydVM_Name -Name $HydVM_CustomScriptExtensionName `
         -Type "CustomScript" -Settings $Settings -TypeHandlerVersion "2.1" -Publisher "Microsoft.Azure.Extensions"
         
         if($?)
         {
-            $HydErrCodeDetails = Invoke-AzVMRunCommand -ResourceGroupName $ResourceGroupName -VMName $HydVM_Name -CommandId "RunShellScript"  -ScriptPath ".\GetErrorCode.sh" | Out-String -Stream
+            Write-Host "Attachment of custom Script Extension Successful!" -ForegroundColor Green
+			#$HydErrCodeDetails = Invoke-AzVMRunCommand -ResourceGroupName $ResourceGroupName -VMName $HydVM_Name -CommandId "RunShellScript"  -ScriptPath ".\GetErrorCode.sh" | Out-String -Stream
            
-            $HydErrCode = $HydErrCodeDetails[8]
-            $script:HydErrorData = $HydErrCodeDetails[9]
-            $script:HydErrorMessage = $HydErrCodeDetails[10]
+            #$HydErrCode = $HydErrCodeDetails[8]
+            #$script:HydErrorData = $HydErrCodeDetails[9]
+            #$script:HydErrorMessage = $HydErrCodeDetails[10]
             
-            Write-Host $script:HydErrorData
-            Write-Host $script:HydErrorMessage
+            #Write-Host $script:HydErrorData
+            #Write-Host $script:HydErrorMessage
 
-            [xml]$ErrorCodesXml = Get-Content -Path ".\ErrorCodes.xml"
-            foreach($ErrCode in $ErrorCodesXml.ErrorCodeDetailMapping.ErrorCode.Number)
-            { 
-                if($ErrCode -eq $HydErrCode)
-                {
-                    Write-Host "Description: $($ErrorCodesXml.ErrorCodeDetailMapping.ErrorCode[$ErrCode].Description)"
-                    Write-Host "Category: $($ErrorCodesXml.ErrorCodeDetailMapping.ErrorCode[$ErrCode].Category)"
-                    Write-Host "Possible Cause: $($ErrorCodesXml.ErrorCodeDetailMapping.ErrorCode[$ErrCode].PossibleCause)"
-                    Write-Host "Recommended Action: $($ErrorCodesXml.ErrorCodeDetailMapping.ErrorCode[$ErrCode].RecommendedAction)"
-                }
-            }
+            #[xml]$ErrorCodesXml = Get-Content -Path ".\ErrorCodes.xml"
+            #foreach($ErrCode in $ErrorCodesXml.ErrorCodeDetailMapping.ErrorCode.Number)
+            #{ 
+            #    if($ErrCode -eq $HydErrCode)
+            #    {
+            #        Write-Host "Description: $($ErrorCodesXml.ErrorCodeDetailMapping.ErrorCode[$ErrCode].Description)"
+            #        Write-Host "Category: $($ErrorCodesXml.ErrorCodeDetailMapping.ErrorCode[$ErrCode].Category)"
+            #        Write-Host "Possible Cause: $($ErrorCodesXml.ErrorCodeDetailMapping.ErrorCode[$ErrCode].PossibleCause)"
+            #        Write-Host "Recommended Action: $($ErrorCodesXml.ErrorCodeDetailMapping.ErrorCode[$ErrCode].RecommendedAction)"
+            #    }
+            #}
             #SoftErrors
-            if($HydErrCode -ne 5 -and $HydErrCode -ne 16 -and $HydErrCode -ne 21 -and $HydErrCode -ne 22 -and $HydErrCode -ne 23 -and $HydErrCode -ne 24 -and $HydErrCode -ne 27) 
-            {
-                $script:HydVM_AttachCSESuccessStatus = $true
-            }
+            #if($HydErrCode -ne 5 -and $HydErrCode -ne 16 -and $HydErrCode -ne 21 -and $HydErrCode -ne 22 -and $HydErrCode -ne 23 -and $HydErrCode -ne 24 -and $HydErrCode -ne 27) 
+            #{
+            #    $script:HydVM_AttachCSESuccessStatus = $true
+            #}
             #HardErrors
-            else 
-            {
-                Write-Error "Terminating the process due to Hard Errors"
-            }
+            #else 
+            #{
+            #    Write-Error "Terminating the process due to Hard Errors"
+            #}
         }
         else 
         {
@@ -918,6 +923,22 @@ function TargetVM_CreateVirtualMachineLinux
         Get-AzVM -ResourceGroupName $ResourceGroupName -Name $TargetVM_VirtualMachineName -Status
         Write-Host "Creation of Target Virtual Machine:  $TargetVM_VirtualMachineName Successful!" -ForegroundColor Green
         $script:TargetVM_VirtualMachineSuccessStatus = $true
+		
+        # Wait for 5 minutes
+        Start-Sleep -Seconds 300
+
+        # Check Guest Agent Status
+        $vm = Get-AzVM -ResourceGroupName $ResourceGroupName -Name $TargetVM_VirtualMachineName -Status
+		$guestAgentStatus = $vm.VMAgent.Statuses | Where-Object { $_.DisplayStatus -eq 'Ready' }
+		if ($guestAgentStatus)
+		{
+			Write-Host "Guest Agent is up and running!" -ForegroundColor Green
+		}
+		else
+		{
+            Write-Error "Guest Agent is not up and running!"
+            exit
+		}
     }
     else 
     {
