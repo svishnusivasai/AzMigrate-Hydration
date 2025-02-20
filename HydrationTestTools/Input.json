@@ -14,7 +14,7 @@
   "AddCustomConfigSettings": true,
   "EnableDHCP": true,
   "EnableGA": true,
-  "TargetVM_NICName": "HydrationTestNIC007",
+  "TargetVM_NICName": "asr-temp-nic-594a612d9b484f75b9195d07fcdd7205",
   "TargetVM_VirtualMachineName": "HydrationTestVM007",
   "TargetVM_VirtualMachineSize": "Standard_B1ms"
 }
