@@ -656,36 +656,37 @@ function HydVM_AttachCustomScriptExtensionLinux
        
         if($?)
         {
-            $HydErrCodeDetails = Invoke-AzVMRunCommand -ResourceGroupName $ResourceGroupName -VMName $HydVM_Name -CommandId "RunShellScript"  -ScriptPath ".\GetErrorCode.sh" | Out-String -Stream
+            Write-Host "Attachment of custom Script Extension Successful!" -ForegroundColor Green
+			#$HydErrCodeDetails = Invoke-AzVMRunCommand -ResourceGroupName $ResourceGroupName -VMName $HydVM_Name -CommandId "RunShellScript"  -ScriptPath ".\GetErrorCode.sh" | Out-String -Stream
            
-            $HydErrCode = $HydErrCodeDetails[8]
-            $script:HydErrorData = $HydErrCodeDetails[9]
-            $script:HydErrorMessage = $HydErrCodeDetails[10]
+            #$HydErrCode = $HydErrCodeDetails[8]
+            #$script:HydErrorData = $HydErrCodeDetails[9]
+            #$script:HydErrorMessage = $HydErrCodeDetails[10]
             
-            Write-Host $script:HydErrorData
-            Write-Host $script:HydErrorMessage
+            #Write-Host $script:HydErrorData
+            #Write-Host $script:HydErrorMessage
 
-            [xml]$ErrorCodesXml = Get-Content -Path ".\ErrorCodes.xml"
-            foreach($ErrCode in $ErrorCodesXml.ErrorCodeDetailMapping.ErrorCode.Number)
-            { 
-                if($ErrCode -eq $HydErrCode)
-                {
-                    Write-Host "Description: $($ErrorCodesXml.ErrorCodeDetailMapping.ErrorCode[$ErrCode].Description)"
-                    Write-Host "Category: $($ErrorCodesXml.ErrorCodeDetailMapping.ErrorCode[$ErrCode].Category)"
-                    Write-Host "Possible Cause: $($ErrorCodesXml.ErrorCodeDetailMapping.ErrorCode[$ErrCode].PossibleCause)"
-                    Write-Host "Recommended Action: $($ErrorCodesXml.ErrorCodeDetailMapping.ErrorCode[$ErrCode].RecommendedAction)"
-                }
-            }
+            #[xml]$ErrorCodesXml = Get-Content -Path ".\ErrorCodes.xml"
+            #foreach($ErrCode in $ErrorCodesXml.ErrorCodeDetailMapping.ErrorCode.Number)
+            #{ 
+            #    if($ErrCode -eq $HydErrCode)
+            #    {
+            #        Write-Host "Description: $($ErrorCodesXml.ErrorCodeDetailMapping.ErrorCode[$ErrCode].Description)"
+            #        Write-Host "Category: $($ErrorCodesXml.ErrorCodeDetailMapping.ErrorCode[$ErrCode].Category)"
+            #        Write-Host "Possible Cause: $($ErrorCodesXml.ErrorCodeDetailMapping.ErrorCode[$ErrCode].PossibleCause)"
+            #        Write-Host "Recommended Action: $($ErrorCodesXml.ErrorCodeDetailMapping.ErrorCode[$ErrCode].RecommendedAction)"
+            #    }
+            #}
             #SoftErrors
-            if($HydErrCode -ne 5 -and $HydErrCode -ne 16 -and $HydErrCode -ne 21 -and $HydErrCode -ne 22 -and $HydErrCode -ne 23 -and $HydErrCode -ne 24 -and $HydErrCode -ne 27) 
-            {
-                $script:HydVM_AttachCSESuccessStatus = $true
-            }
+            #if($HydErrCode -ne 5 -and $HydErrCode -ne 16 -and $HydErrCode -ne 21 -and $HydErrCode -ne 22 -and $HydErrCode -ne 23 -and $HydErrCode -ne 24 -and $HydErrCode -ne 27) 
+            #{
+            #    $script:HydVM_AttachCSESuccessStatus = $true
+            #}
             #HardErrors
-            else 
-            {
-                Write-Error "Terminating the process due to Hard Errors"
-            }   
+            #else 
+            #{
+            #    Write-Error "Terminating the process due to Hard Errors"
+            #}   
         }
         else 
         {
