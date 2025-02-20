@@ -1049,7 +1049,7 @@ function Main
         HydVM_DeleteNSG
     }
 
-    if($script:HydVM_AttachCSESuccessStatus -and $script:HydVM_VMDeletionSuccessStatus)
+    if($script:HydVM_VMDeletionSuccessStatus)
     {
         if($OSType -eq 0)
         {
