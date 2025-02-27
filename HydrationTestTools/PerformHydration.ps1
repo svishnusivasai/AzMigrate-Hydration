@@ -28,22 +28,22 @@ param
     [parameter(ParameterSetName="DataDisk", mandatory=$false)]
     [switch]$AttachDataDisks,
 
-    [parameter(ParameterSetName="DataDisk", mandatory=$true, HelpMessage="Enter the number of source data disks")]
+    [parameter(ParameterSetName="DataDisk", mandatory=$false, HelpMessage="Enter the number of source data disks")]
     [int]$NoOfDataDisks=0,
     
-    [parameter(ParameterSetName="DataDisk", mandatory=$true, HelpMessage="Enter the name of all the Source Data Disks")]
+    [parameter(ParameterSetName="DataDisk", mandatory=$false, HelpMessage="Enter the name of all the Source Data Disks")]
     [string[]]$DataDisksName,
 
-    [parameter(mandatory=$false, HelpMessage="Enter the name of the GitHub branch")]
-    [string]$GithubBranch="main",
+    [parameter(mandatory=$true, HelpMessage="Enter the value of release tag")]
+    [string]$Tag,
 
     [parameter(ParameterSetName="CustomConfigSettings", mandatory=$false)]
     [switch]$AddCustomConfigSettings,
 
-    [parameter(ParameterSetName="CustomConfigSettings", mandatory=$true, HelpMessage="Enter 1 for Yes and 0 for No")]
+    [parameter(ParameterSetName="CustomConfigSettings", mandatory=$false, HelpMessage="Enter 1 for Yes and 0 for No")]
     [int]$EnableDHCP,
     
-    [parameter(ParameterSetName="CustomConfigSettings", mandatory=$true, HelpMessage="Enter 1 for Yes and 0 for No")]
+    [parameter(ParameterSetName="CustomConfigSettings", mandatory=$false, HelpMessage="Enter 1 for Yes and 0 for No")]
     [int]$EnableGA,
 
     [parameter(mandatory=$true, HelpMessage="Enter the name of the network interface for the target Virtual Machine")]
@@ -58,6 +58,8 @@ param
 
 #Random String Generation
 [String]$RandomString = -join ( (48..57)  | Get-Random -Count 5 | % {[char]$_}) 
+
+[string]$OSDiskCopy   = $OSDiskName + $RandomString
 
 #Variables/Constants used in Creation of Virtual Network 
 [string]$HydVM_AddressPrefix      = "10.255.248.0/22"
@@ -88,10 +90,10 @@ param
 [string]$HydVM_VersionLinux            = "latest"
 [string]$HydVM_StorageAccountTypeLinux = "Standard_LRS"
 
-#Variables/constants used to fetch files from a github branch
+#Variables/constants used to fetch files from a github release
 $HydVM_CustomScriptExtensionName = "HydrationCustomScriptExtension"
-$BaseUriApi                      = "https://api.github.com/repos/svishnusivasai/AzMigrate-Hydration/releases/tags/1740560341303"
-$PrefixFileUri                   = "https://github.com/svishnusivasai/AzMigrate-Hydration/releases/download/1740560341303/"
+$BaseUriApi                      = "https://api.github.com/repos/svishnusivasai/AzMigrate-Hydration/releases/tags/" + $Tag
+$PrefixFileUri                   = "https://github.com/svishnusivasai/AzMigrate-Hydration/releases/download/" + $Tag + "/"
 $script:FileUris                 =  @();
 
 #Variable used for the creation of RecoveryInfoFile
@@ -110,6 +112,7 @@ $script:RecoveryInfoFileContent += "DiskSignature=0#"
 [bool]$script:HydVM_NICSuccessStatus                    = $false
 [bool]$script:HydVM_NSGSuccessStatus                    = $false
 [bool]$script:HydVM_VirtualMachineSuccessStatus         = $false
+[bool]$script:HydVM_CopyOSDiskStatus                    = $false
 [bool]$script:HydVM_AttachOSDiskSuccessStatus           = $false
 [bool]$script:HydVM_AttachDataDisksSuccessStatus        = $true
 [bool]$script:HydVM_FetchHydCompFromGithubSuccessStatus = $false
@@ -361,7 +364,35 @@ function HydVM_CreateVirtualMachineLinux
 
 <#---------------------------------------------------------------------------------------------------------------------------
 Function Name                   : HydVM_AttachSourceDisks
-Global Variables/Constants used : $script:RecoveryInfoFileContent, $ResourceGroupName, $OSDiskName, $HydVM_Name, 
+Global Variables/Constants used : $script:RecoveryInfoFileContent, $ResourceGroupName, $OSDiskCopy, $HydVM_Name, 
+                                  $script:HydVM_AttachOSDiskSuccessStatus, $script:AttachDataDiskSuccessStatus
+Description                     : Attaches source OS Disk and Data Disks to the Hydration VM and appends the DiskMap in
+                                  $script:RecoveryInfoFileContent string. It sets the value of
+                                  $script:HydVM_AttachOSDiskSuccessStatus to true on success attachment of OS disk to Hyd VM
+                                  and $script:AttachDataDiskSuccessStatus to false if any data disk fails to get attached.
+---------------------------------------------------------------------------------------------------------------------------#>
+Function HydVM_CopySourceOSDisk
+{
+	Write-Host "Copy source OS Disk to $OSDiskCopy"
+	
+	$sourceDisk = Get-AzDisk -ResourceGroupName $ResourceGroupName -DiskName $OSDiskName
+	$newDiskConfig = New-AzDiskConfig -SourceResourceId $sourceDisk.Id -Location $sourceDisk.Location -CreateOption Copy
+	New-AzDisk -ResourceGroupName $ResourceGroupName -DiskName $OSDiskCopy -Disk $newDiskConfig
+    If($?)
+    {
+		Write-Host "Successfully copied source OS disk to $OSDiskCopy"
+		$script:HydVM_CopyOSDiskStatus = $true
+	}
+	else
+	{
+		Write-Error "Couldn't copy source OS disk to $OSDiskCopy"
+	}
+	
+}
+
+<#---------------------------------------------------------------------------------------------------------------------------
+Function Name                   : HydVM_AttachSourceDisks
+Global Variables/Constants used : $script:RecoveryInfoFileContent, $ResourceGroupName, $OSDiskCopy, $HydVM_Name, 
                                   $script:HydVM_AttachOSDiskSuccessStatus, $script:AttachDataDiskSuccessStatus
 Description                     : Attaches source OS Disk and Data Disks to the Hydration VM and appends the DiskMap in
                                   $script:RecoveryInfoFileContent string. It sets the value of
@@ -373,7 +404,7 @@ Function HydVM_AttachSourceDisks
     Write-Host "Attaching Source OS Disk to the Hydration Virtual Machine..."
     
     $script:RecoveryInfoFileContent+="[DiskMap]#"
-    $Disk = Get-AzDisk -ResourceGroupName $ResourceGroupName -DiskName $OSDiskName
+    $Disk = Get-AzDisk -ResourceGroupName $ResourceGroupName -DiskName $OSDiskCopy
     $VirtualMachine = Get-AzVM -Name $HydVM_Name -ResourceGroupName $ResourceGroupName
     $VirtualMachine = Add-AzVMDataDisk -CreateOption Attach -Lun 0 -VM $VirtualMachine -ManagedDiskId $Disk.Id
     If($?)
@@ -381,19 +412,19 @@ Function HydVM_AttachSourceDisks
         Update-AzVM -VM $VirtualMachine -ResourceGroupName $ResourceGroupName
         if($?)
         {
-            Write-Host "Attachment of Source OS disk: $OSDiskName to Hydration Virtual Machine Successful!" -ForegroundColor Green
+            Write-Host "Attachment of Source OS disk: $OSDiskCopy to Hydration Virtual Machine Successful!" -ForegroundColor Green
             $script:RecoveryInfoFileContent+=$Disk.UniqueId+"=0#"
             $script:HydVM_AttachOSDiskSuccessStatus = $true
         }
         else 
         {
-            Write-Error "Attachment of Source OS disk: $OSDiskName to Hydration Virtual Machine Unsuccessful!"
+            Write-Error "Attachment of Source OS disk: $OSDiskCopy to Hydration Virtual Machine Unsuccessful!"
         }
         
     }
     else 
     {
-        Write-Error "Attachment of Source OS disk: $OSDiskName to Hydration Virtual Machine Unsuccessful!"
+        Write-Error "Attachment of Source OS disk: $OSDiskCopy to Hydration Virtual Machine Unsuccessful!"
     }
     If($OSType -ne 0 -and $AttachDataDisks.IsPresent)
     {
@@ -422,7 +453,7 @@ Function HydVM_AttachSourceDisks
 
 <#---------------------------------------------------------------------------------------------------------------------------
 Function Name                   : HydVM_FetchHydComponentsFromGithub
-Global Variables/Constants used : $GithubBranch, $BaseUriApi, $AllMandatoryFilesPresent_Windows, $AllMandatoryFilesPresent_Linux,
+Global Variables/Constants used : $Tag, $BaseUriApi, $AllMandatoryFilesPresent_Windows, $AllMandatoryFilesPresent_Linux,
                                   $script:FileUris, $script:HydVM_FetchHydCompFromGithubSuccessStatus
 Description                     : Fetches all the files from the Github Branch provided by user and validates the presence of 
                                   mandatory files: AzureRecoveryTools.zip, StartupScript.ps1 and StartupScript.sh for Windows 
@@ -432,12 +463,12 @@ Description                     : Fetches all the files from the Github Branch p
 ---------------------------------------------------------------------------------------------------------------------------#>
 function HydVM_FetchHydComponentsFromGithub
 {
-    Write-Host "Fetching Hydration Components from Github Branch:$GithubBranch..."
+    Write-Host "Fetching Hydration Components from Github Release with tag:$Tag..."
     #Fetching
     $Information = Invoke-WebRequest -Uri $BaseUriApi -UseBasicParsing
     if($null -eq $Information)
     {
-        Write-Error "Invalid Github Branch Name! Suggestion: Use main branch and re-run the script"
+        Write-Error "Invalid Github release Tag!"
     }
     else
     {   
@@ -474,18 +505,18 @@ function HydVM_FetchHydComponentsFromGithub
         $AllMandatoryFilesPresent_Linux = $true
         if(-not $CheckMandatoryFiles[0])
         {
-            Write-Error "Mandatory component: AzureRecoveryTools.zip missing from '$GithubBranch'. Suggestion: Use main branch and re-run the script"
+            Write-Error "Mandatory component: AzureRecoveryTools.zip missing from Github Release with the tag:'$Tag'."
             $AllMandatoryFilesPresent_Windows=$false
             $AllMandatoryFilesPresent_Linux=$false
         }
         if(-not $CheckMandatoryFiles[1] -and $OSType -eq 0)
         {
-            Write-Error "Mandatory component: StartupScript.ps1 missing from '$GithubBranch'. Suggestion: Use main branch and re-run the script"
+            Write-Error "Mandatory component: StartupScript.ps1 missing from Github Release with the tag:'$Tag'."
             $AllMandatoryFilesPresent_Windows=$false
         }
         if(-not $CheckMandatoryFiles[2] -and $OSType -ne 0)
         {
-            Write-Error "Mandatory component: StartupScript.sh missing from '$GithubBranch'. Suggestion: Use main branch and re-run the script"
+            Write-Error "Mandatory component: StartupScript.sh missing from Github Release with the tag:'$Tag'."
             $AllMandatoryFilesPresent_Linux=$false
         }
         
@@ -498,7 +529,7 @@ function HydVM_FetchHydComponentsFromGithub
                 $FileUri=$PrefixFileUri+$FileNames[$i]
                 $script:FileUris+=$FileUri            
             }
-            Write-Host "Fetching Hydration Components from $GithubBranch Successful! " -ForegroundColor Green
+            Write-Host "Fetching Hydration Components from Github Release with the tag:'$Tag' Successful! " -ForegroundColor Green
             $script:HydVM_FetchHydCompFromGithubSuccessStatus = $true
         }
         elseif ($OSType -ne 0 -and $AllMandatoryFilesPresent_Linux) 
@@ -508,12 +539,12 @@ function HydVM_FetchHydComponentsFromGithub
                 $FileUri=$PrefixFileUri+$FileNames[$i]
                 $script:FileUris+=$FileUri
             }
-            Write-Host "Fetching Hydration Components from $GithubBranch Successful! " -ForegroundColor Green
+            Write-Host "Fetching Hydration Components from Github Release with the tag:'$Tag' Successful! " -ForegroundColor Green
             $script:HydVM_FetchHydCompFromGithubSuccessStatus = $true  
         }
         else 
         {
-            Write-Error "Fetching Files from $GithubBranch Unsuccessful!"
+            Write-Error "Fetching Files from Github Release with the tag:'$Tag' Unsuccessful!"
         }
     }    
 }
@@ -853,9 +884,47 @@ function HydVM_DeleteNSG
     }
 }
 
+<#------------------------------------------------------------------------------------
+Function Name                   : TargetVM_DeleteVirtualMachine
+Global Variables/Constants used : $ResourceGroupName, $TargetVM_Name
+Description                     : Deletion of Target Virtual Machine
+--------------------------------------------------------------------------------------#>
+function TargetVM_DeleteVirtualMachine
+{
+    Write-Host "Deleting the Target Virtual Machine..." 
+    Remove-AzVM -ResourceGroupName $ResourceGroupName -Name $TargetVM_VirtualMachineName -Force
+    if($?)
+    {
+        Write-Host "Deletion of $TargetVM_Name Successful!" -ForegroundColor Green
+    }
+    else 
+    {
+        Write-Error "Deletion of $TargetVM_VirtualMachineName Unsuccessful. Kindly delete the resource manually"
+    }
+}
+
+<#------------------------------------------------------------------------------------
+Function Name                   : TargetVM_DeleteOSDisk
+Global Variables/Constants used : $ResourceGroupName, $TargetVM_Name
+Description                     : Deletion of Target VM's OS Disk
+--------------------------------------------------------------------------------------#>
+function TargetVM_DeleteOSDisk
+{
+    Write-Host "Deleting the Target VM's OS Disk..."
+    Remove-AzDisk -ResourceGroupName $ResourceGroupName -DiskName $OSDiskCopy -Force
+    if($?)
+    {
+        Write-Host "Deletion of $OSDiskCopy Successful!" -ForegroundColor Green
+    }
+    else 
+    {
+        Write-Error "Deletion of $OSDiskCopy Unsuccessful. Kindly delete the resource manually"
+    }
+}
+
 <#---------------------------------------------------------------------------------------------------------------------------
 Function Name                   : TargetVM_CreateVirtualMachineWindows
-Global Variables/Constants used : $TargetVM_VirtualMachineName, $TargetVM_VirtualMachineSize, $OSDiskName, $TargetVM_NICName, 
+Global Variables/Constants used : $TargetVM_VirtualMachineName, $TargetVM_VirtualMachineSize, $OSDiskCopy, $TargetVM_NICName, 
                                   $ResourceGroupName, $Location, $script:TargetVM_VirtualMachineSuccessStatus
 Description                     : Sets the OS profile, Hardware profile, Storage profile and Network profile of the 
                                   configurable virtual machine object and creates Windows Target Virtual Machine using it.
@@ -868,8 +937,8 @@ function TargetVM_CreateVirtualMachineWindows
     $VirtualMachine = New-AzVMConfig -VMName $TargetVM_VirtualMachineName -VMSize $TargetVM_VirtualMachineSize
 
     #StorageProfile and #OSProfile
-    $Disk = Get-AzDisk -ResourceGroupName $ResourceGroupName -DiskName $OSDiskName
-    Set-AzVMOSDisk -VM $VirtualMachine -ManagedDiskId $Disk.Id -Name $OSDiskName -CreateOption "Attach" -Windows
+    $Disk = Get-AzDisk -ResourceGroupName $ResourceGroupName -DiskName $OSDiskCopy
+    Set-AzVMOSDisk -VM $VirtualMachine -ManagedDiskId $Disk.Id -Name $OSDiskCopy -CreateOption "Attach" -Windows
 
     #NetworkProfile
     $NICObject = Get-AzNetworkInterface -Name $TargetVM_NICName -ResourceGroupName $ResourceGroupName
@@ -882,8 +951,24 @@ function TargetVM_CreateVirtualMachineWindows
     {
         #GetStatusofVM
         Get-AzVM -ResourceGroupName $ResourceGroupName -Name $TargetVM_VirtualMachineName -Status
-        Write-Host "Creation of Target Virtual Machine: $TargetVM_VirtualMachineName Successful!" -ForegroundColor Green
+        Write-Host "Creation of Target Virtual Machine:  $TargetVM_VirtualMachineName Successful!" -ForegroundColor Green
         $script:TargetVM_VirtualMachineSuccessStatus = $true
+		
+        # Wait for 5 minutes
+        Start-Sleep -Seconds 300
+
+        # Check Guest Agent Status
+        $vm = Get-AzVM -ResourceGroupName $ResourceGroupName -Name $TargetVM_VirtualMachineName -Status
+		$guestAgentStatus = $vm.VMAgent.Statuses | Where-Object { $_.DisplayStatus -eq 'Ready' }
+		if ($guestAgentStatus)
+		{
+			Write-Host "Guest Agent is up and running!" -ForegroundColor Green
+		}
+		else
+		{
+            Write-Error "Guest Agent is not up and running!"
+            exit
+		}
     }
     else 
     {
@@ -894,7 +979,7 @@ function TargetVM_CreateVirtualMachineWindows
 
 <#---------------------------------------------------------------------------------------------------------------------------
 Function Name                   : TargetVM_CreateVirtualMachineLinux
-Global Variables/Constants used : $TargetVM_VirtualMachineName, $TargetVM_VirtualMachineSize, $OSDiskName, $TargetVM_NICName, 
+Global Variables/Constants used : $TargetVM_VirtualMachineName, $TargetVM_VirtualMachineSize, $OSDiskCopy, $TargetVM_NICName, 
                                   $ResourceGroupName, $Location, $script:TargetVM_VirtualMachineSuccessStatus
 Description                     : Sets the OS profile, Hardware profile, Storage profile and Network profile of the 
                                   configurable virtual machine object and creates Linux Target Virtual Machine using it.
@@ -907,8 +992,8 @@ function TargetVM_CreateVirtualMachineLinux
     $VirtualMachine = New-AzVMConfig -VMName $TargetVM_VirtualMachineName -VMSize $TargetVM_VirtualMachineSize
 
     #StorageProfile and #OSProfile
-    $Disk = Get-AzDisk -ResourceGroupName $ResourceGroupName -DiskName $OSDiskName
-    Set-AzVMOSDisk -VM $VirtualMachine -ManagedDiskId $Disk.Id -Name $OSDiskName -CreateOption "Attach" -Linux
+    $Disk = Get-AzDisk -ResourceGroupName $ResourceGroupName -DiskName $OSDiskCopy
+    Set-AzVMOSDisk -VM $VirtualMachine -ManagedDiskId $Disk.Id -Name $OSDiskCopy -CreateOption "Attach" -Linux
 
     #NetworkProfile
     $NICObject = Get-AzNetworkInterface -Name $TargetVM_NICName -ResourceGroupName $ResourceGroupName
@@ -1007,7 +1092,12 @@ function Main
 
     if($script:HydVM_VirtualMachineSuccessStatus)
     {
-        HydVM_AttachSourceDisks
+		HydVM_CopySourceDisk
+    }	
+	
+    if($script:HydVM_CopyOSDiskStatus)
+    {
+		HydVM_AttachSourceDisks
     }
     
     if($script:HydVM_AttachOSDiskSuccessStatus -and $script:HydVM_AttachDataDisksSuccessStatus)
@@ -1064,6 +1154,10 @@ function Main
             TargetVM_AttachDataDisks
         }  
     }
+	
+	TargetVM_DeleteVirtualMachine
+	TargetVM_DeleteOSDisk
+	
     Stop-Transcript  
     Write-Host $script:HydErrorData
     Write-Host $script:HydErrorMessage
