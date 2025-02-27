@@ -90,8 +90,8 @@ param
 
 #Variables/constants used to fetch files from a github branch
 $HydVM_CustomScriptExtensionName = "HydrationCustomScriptExtension"
-$BaseUriApi                      = "https://api.github.com/repos/svishnusivasai/HydrationComponents/git/trees/"+$GithubBranch+"?recursive=1"
-$PrefixFileUri                   = "https://github.com/svishnusivasai/HydrationComponents/raw/$GithubBranch/"
+$BaseUriApi                      = "https://api.github.com/repos/svishnusivasai/AzMigrate-Hydration/releases/tags/1740560341303"
+$PrefixFileUri                   = "https://github.com/svishnusivasai/AzMigrate-Hydration/releases/download/1740560341303/"
 $script:FileUris                 =  @();
 
 #Variable used for the creation of RecoveryInfoFile
@@ -441,35 +441,34 @@ function HydVM_FetchHydComponentsFromGithub
     }
     else
     {   
-        $Objects = $Information.Content | ConvertFrom-Json
-        $Files = $Objects | Select -exp tree
-        [string[]]$FileNames=$Files.path
+		$Objects = $Infomation.Content | ConvertFrom-Json
 
-        <#Validation
-        $CheckMandatoryFiles
-        Index 0 : AzureRecoveryTools.zip
-        Index 1 : StartupScript.ps1 (Windows)
-        Index 2 : StartupScript.sh (Linux)#>
-        $CheckMandatoryFiles = @($false,$false,$false,$false)
-        for($i=0;$i -lt $FileNames.Length;$i++)
-        {
-            if($FileNames[$i] -eq "AzureRecoveryTools.zip")
-            {
-                $CheckMandatoryFiles[0]=$true
-            }
-            if($FileNames[$i] -eq "StartupScript.ps1")
-            {
-                $CheckMandatoryFiles[1]=$true
-            }
-            if($FileNames[$i] -eq "StartupScript.sh")
-            {
-                $CheckMandatoryFiles[2]=$true
-            }
-            if($FileNames[$i] -eq "azurerecovery-70b5c7c0-ad71-4cc6-afbe-1bab5226da25.conf")
-            {
-                $CheckMandatoryFiles[3]=$true
-            }			
-        }
+		# Extract the asset URLs and create the FileUris
+		$Assets = $Objects.assets
+		[string[]]$FileNames = $Assets.name
+
+		<#Validation
+		$CheckMandatoryFiles
+		Index 0 : AzureRecoveryTools.zip
+		Index 1 : StartupScript.ps1 (Windows)
+		Index 2 : StartupScript.sh (Linux)
+		Index 3 : azurerecovery-70b5c7c0-ad71-4cc6-afbe-1bab5226da25.conf#>
+		$CheckMandatoryFiles = @($false, $false, $false, $false)
+
+		for ($i = 0; $i -lt $FileNames.Length; $i++) {
+			if ($FileNames[$i] -eq "AzureRecoveryTools.zip") {
+				$CheckMandatoryFiles[$i] = $true
+			}
+			if ($FileNames[$i] -eq "StartupScript.ps1") {
+				$CheckMandatoryFiles[$i] = $true
+			}
+			if ($FileNames[$i] -eq "StartupScript.sh") {
+				$CheckMandatoryFiles[$i] = $true
+			}
+			if ($FileNames[$i] -eq "azurerecovery-70b5c7c0-ad71-4cc6-afbe-1bab5226da25.conf") {
+				$CheckMandatoryFiles[$i] = $true
+			}
+		}
 
         $AllMandatoryFilesPresent_Windows = $true
         $AllMandatoryFilesPresent_Linux = $true
