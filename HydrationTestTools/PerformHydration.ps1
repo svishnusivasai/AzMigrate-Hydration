@@ -1092,7 +1092,7 @@ function Main
 
     if($script:HydVM_VirtualMachineSuccessStatus)
     {
-		HydVM_CopySourceDisk
+		HydVM_CopySourceOSDisk
     }	
 	
     if($script:HydVM_CopyOSDiskStatus)
