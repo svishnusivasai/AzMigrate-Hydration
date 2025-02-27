@@ -441,7 +441,7 @@ function HydVM_FetchHydComponentsFromGithub
     }
     else
     {   
-		$Objects = $Infomation.Content | ConvertFrom-Json
+		$Objects = $Information.Content | ConvertFrom-Json
 
 		# Extract the asset URLs and create the FileUris
 		$Assets = $Objects.assets
