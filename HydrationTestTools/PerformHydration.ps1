@@ -11,7 +11,7 @@ Description  :  This script is independently capable of raising a hydration virt
 param
 (
     [parameter(mandatory=$true, HelpMessage="Enter Your Resource Group Name...")]
-    [string]$ResourceGroupName,
+    [string]$ResourceGroupName
 
     [parameter(mandatory=$true, HelpMessage="Enter Your Location... Eg: centraluseuap")]
     [string]$Location,
@@ -1010,26 +1010,21 @@ function TargetVM_CreateVirtualMachineLinux
         $script:TargetVM_VirtualMachineSuccessStatus = $true
 		
 
-	$guestAgentStatus = $null
-	
-	# Poll every minute for 10 minutes
-	for ($i = 0; $i -lt 10; $i++) {
-	    # Check Guest Agent Status
-	    $vm = Get-AzVM -ResourceGroupName $ResourceGroupName -Name $TargetVM_VirtualMachineName -Status
-	    $guestAgentStatus = $vm.VMAgent.Statuses | Where-Object { $_.DisplayStatus -eq 'Ready' }
-	    
-	    if ($guestAgentStatus) {
-	        Write-Host "Guest Agent is up and running!" -ForegroundColor Green
-	        break
-	    } else {
-	        Write-Host "Guest Agent is not ready yet. Checking again in 1 minute..." -ForegroundColor Yellow
-	        Start-Sleep -Seconds 60
-	    }
-	}
-	
-	if (-not $guestAgentStatus) {
-	    Write-Error "Guest Agent is not ready after 10 minutes!"
-	}
+        # Wait for 5 minutes
+        Start-Sleep -Seconds 300
+
+        # Check Guest Agent Status
+        $vm = Get-AzVM -ResourceGroupName $ResourceGroupName -Name $TargetVM_VirtualMachineName -Status
+		$guestAgentStatus = $vm.VMAgent.Statuses | Where-Object { $_.DisplayStatus -eq 'Ready' }
+		if ($guestAgentStatus)
+		{
+			Write-Host "Guest Agent is up and running!" -ForegroundColor Green
+		}
+		else
+		{
+            Write-Error "Guest Agent is not up and running!"
+            exit
+		}
 
     }
     else 
