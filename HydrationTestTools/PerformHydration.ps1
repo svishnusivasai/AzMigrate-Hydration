@@ -11,7 +11,7 @@ Description  :  This script is independently capable of raising a hydration virt
 param
 (
     [parameter(mandatory=$true, HelpMessage="Enter Your Resource Group Name...")]
-    [string]$ResourceGroupName
+    [string]$ResourceGroupName,
 
     [parameter(mandatory=$true, HelpMessage="Enter Your Location... Eg: centraluseuap")]
     [string]$Location,
