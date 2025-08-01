@@ -680,7 +680,7 @@ function HydVM_AttachCustomScriptExtensionLinux
 
     if(-not $AddCustomConfigSettings)
     {
-		$Settings = @{"fileUris" = $script:FileUris; "commandToExecute" = "bash StartupScript.sh migrationtest 70b5c7c0-ad71-4cc6-afbe-1bab5226da25 'UseGithubHydrationUtils:false;IsInlineGAInstallationEnabled:true;IsCentosInlineGAInstallationEnabled:true;IsConfidentialVmMigration:false;LinuxGAReleaseZip:v2.12.0.4.zip'"};        
+		$Settings = @{"fileUris" = $script:FileUris; "commandToExecute" = "bash StartupScript.sh migrationtest 70b5c7c0-ad71-4cc6-afbe-1bab5226da25 'UseGithubHydrationUtils:false;IsInlineGAInstallationEnabled:true;IsCentosInlineGAInstallationEnabled:true;UseMigrationHydrationScript:true;HydrationCommonDistros:ROCKY8|ROCKY9|ALMA8|ALMA9;LinuxGAReleaseZip:v2.12.0.4.zip;HydrationSupportedDistros:DEBIAN12;CvmSupportedDistros:RHEL9'"};        
 		Set-AzVMExtension -ResourceGroupName $ResourceGroupName -Location $Location -VMName $HydVM_Name -Name $HydVM_CustomScriptExtensionName `
         -Type "CustomScript" -Settings $Settings -TypeHandlerVersion "2.1" -Publisher "Microsoft.Azure.Extensions"
        
@@ -743,7 +743,7 @@ function HydVM_AttachCustomScriptExtensionLinux
             $CustomConfigSettings+="EnableGA:false"
         } 
     
-		$Settings = @{"fileUris" = $script:FileUris; "commandToExecute" = "bash StartupScript.sh migrationtest 70b5c7c0-ad71-4cc6-afbe-1bab5226da25 'UseGithubHydrationUtils:false;IsInlineGAInstallationEnabled:true;IsCentosInlineGAInstallationEnabled:true;IsConfidentialVmMigration:false;LinuxGAReleaseZip:v2.12.0.4.zip'"};
+		$Settings = @{"fileUris" = $script:FileUris; "commandToExecute" = "bash StartupScript.sh migrationtest 70b5c7c0-ad71-4cc6-afbe-1bab5226da25 'UseGithubHydrationUtils:false;IsInlineGAInstallationEnabled:true;IsCentosInlineGAInstallationEnabled:true;UseMigrationHydrationScript:true;HydrationCommonDistros:ROCKY8|ROCKY9|ALMA8|ALMA9;LinuxGAReleaseZip:v2.12.0.4.zip;HydrationSupportedDistros:DEBIAN12;CvmSupportedDistros:RHEL9'"};
         Set-AzVMExtension -ResourceGroupName $ResourceGroupName -Location $Location -VMName $HydVM_Name -Name $HydVM_CustomScriptExtensionName `
         -Type "CustomScript" -Settings $Settings -TypeHandlerVersion "2.1" -Publisher "Microsoft.Azure.Extensions"
         
